@@ -29,6 +29,49 @@ export default function PhotoCard({
   const [dragStart, setDragStart] = useState<{ x: number; y: number; cropX: number; cropY: number } | null>(null);
   const [isCurrentlyDragging, setIsCurrentlyDragging] = useState(false);
 
+    const [pinchStart, setPinchStart] = useState<{ distance: number; zoom: number } | null>(null);
+
+  const getTouchDistance = (touches: React.TouchList) => {
+    if (touches.length < 2) return 0;
+    const t1 = touches[0];
+    const t2 = touches[1];
+    return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+      // Disable single finger panner behavior to protect multi-touch precision
+      setDragStart(null);
+      setIsCurrentlyDragging(false);
+      const dist = getTouchDistance(e.touches);
+      setPinchStart({
+        distance: dist,
+        zoom: photo.crop.zoom || 1.0,
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2 && pinchStart) {
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+      const dist = getTouchDistance(e.touches);
+      if (dist > 0 && pinchStart.distance > 0) {
+        const factor = dist / pinchStart.distance;
+        const nextZoom = Math.max(0.5, Math.min(3.0, pinchStart.zoom * factor));
+        onUpdate(photo.id, {
+          crop: { ...photo.crop, zoom: nextZoom },
+          status: 'idle',
+        });
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setPinchStart(null);
+  };
+
   const currentPreset = presets.find(p => p.id === activePresetId) || presets[0];
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -190,6 +233,10 @@ export default function PhotoCard({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         onPointerCancel={handlePointerUp}
         style={{ cursor: isCurrentlyDragging ? 'grabbing' : 'grab' }}
         className="relative aspect-square w-full bg-slate-950 overflow-hidden flex items-center justify-center select-none touch-none"
