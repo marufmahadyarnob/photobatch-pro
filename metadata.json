@@ -1,0 +1,6 @@
+{
+  "name": "PhotoBatch Pro",
+  "description": "AI-powered school and student batch photo processing tool with auto-face centering, rapid background replacement, manual cropping, skin-smoothing filters, and custom printable sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
